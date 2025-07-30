@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tito AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <style>
+    * {
+      margin: 0; padding: 0; box-sizing: border-box;
+      font-family: 'Nunito', sans-serif;
+    }
+    body {
+      background: linear-gradient(135deg, #e6f0ff, #ffffff);
+      color: #003366;
+      padding: 1rem;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    header h1 {
+      font-size: 2rem;
+      color: #0055cc;
+    }
+    header p {
+      font-size: 1.2rem;
+    }
+    nav {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    nav button {
+      background: #007bff;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 2rem;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    nav button:hover {
+      background: #005fcc;
+    }
+    section {
+      display: none;
+      padding: 1rem;
+      background: #f0f8ff;
+      border-radius: 1rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
+    }
+    section.active {
+      display: block;
+    }
+    .output {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: white;
+      border-radius: 1rem;
+      border: 1px solid #cce0ff;
+      white-space: pre-wrap;
+    }
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 60px);
+      gap: 10px;
+      justify-content: center;
+      margin-top: 1rem;
+    }
+    .card {
+      width: 60px; height: 60px;
+      background-color: #007bff;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 1.5rem;
+      user-select: none;
+    }
+    .card.matched {
+      background-color: #28a745;
+      cursor: default;
+    }
+    #login-section, #logout-section {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    input, button {
+      font-size: 1rem;
+    }
+    input[type="text"], input[type="email"], input[type="password"] {
+      padding: 0.5rem;
+      margin: 0.25rem 0;
+      width: 100%;
+      max-width: 300px;
+      border-radius: 0.5rem;
+      border: 1px solid #ccc;
+    }
+    button[type="submit"] {
+      background-color: #007bff;
+      border: none;
+      color: white;
+      padding: 0.5rem 1.5rem;
+      border-radius: 2rem;
+      cursor: pointer;
+      margin-top: 0.5rem;
+    }
+    button[type="submit"]:hover {
+      background-color: #005fcc;
+    }
+    #login-section button {
+      background: #007bff;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 2rem;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin: 0.25rem;
+    }
+    #login-section button:hover:enabled {
+      background: #005fcc;
+    }
+    #login-section button:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+    }
+    /* Stile uniforme per tutti i bottoni */
+    button {
+      background: #007bff;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 2rem;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin: 0.25rem;
+    }
+    button:hover:enabled {
+      background: #005fcc;
+    }
+    button:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+    }
+    /* Override per bottoni specifici se necessario */
+    nav button {
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1 style="font-size:2.5rem; color:#0055cc; text-align:center; margin-bottom:0.5rem;">Tito AI</h1>
+</header>
+<!-- Bottone login/registrazione in alto a destra -->
+<button id="open-login-modal" style="position:fixed; top:2rem; right:2rem; z-index:20; padding:0.7rem 2rem; font-size:1.1rem;">Accedi / Registrati</button>
+
+<!-- HOME PAGE MODERNA -->
+<section id="homepage" class="active" style="max-width:700px; margin:3rem auto 0 auto;">
+  <div style="text-align:center; margin-bottom:2.5rem;">
+    <span style="font-size:2.2rem;">🎉</span>
+    <h2 style="font-size:2rem; color:#0055cc; margin:0.5rem 0;">Benvenuto su Tito AI!</h2>
+    <p style="font-size:1.2rem; color:#003366;">Il portale per avvicinare i bambini all’Intelligenza Artificiale in modo sicuro, divertente e creativo.</p>
+  </div>
+  <div style="display:flex; flex-wrap:wrap; gap:2rem; justify-content:center; margin-bottom:2.5rem;">
+    <div style="flex:1 1 250px; min-width:220px; background:white; border-radius:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.07); padding:1.5rem; text-align:center;">
+      <span style="font-size:2rem;">🤖</span>
+      <h3 style="margin:0.7rem 0 0.3rem 0; color:#0055cc;">Cos’è Tito AI?</h3>
+      <p style="font-size:1rem; color:#003366;">Un amico digitale che ti fa giocare, disegnare e inventare storie con l’AI. Imparare non è mai stato così magico!</p>
+    </div>
+    <div style="flex:1 1 250px; min-width:220px; background:white; border-radius:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.07); padding:1.5rem; text-align:center;">
+      <span style="font-size:2rem;">🛡️</span>
+      <h3 style="margin:0.7rem 0 0.3rem 0; color:#0055cc;">Sicurezza</h3>
+      <p style="font-size:1rem; color:#003366;">Tito AI protegge la tua privacy e ti guida in un ambiente sicuro, pensato per bambini e famiglie.</p>
+    </div>
+  </div>
+  <div style="display:flex; flex-wrap:wrap; gap:2rem; justify-content:center; margin-bottom:2.5rem;">
+    <div style="flex:1 1 200px; min-width:180px; background:white; border-radius:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.07); padding:1.2rem; text-align:center;">
+      <span style="font-size:1.7rem;">🧩</span>
+      <h4 style="margin:0.5rem 0 0.2rem 0; color:#0055cc;">Giochi educativi</h4>
+      <p style="font-size:0.98rem; color:#003366;">Allena la mente con giochi di memoria e matematica!</p>
+    </div>
+    <div style="flex:1 1 200px; min-width:180px; background:white; border-radius:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.07); padding:1.2rem; text-align:center;">
+      <span style="font-size:1.7rem;">🎨</span>
+      <h4 style="margin:0.5rem 0 0.2rem 0; color:#0055cc;">Disegna con l’AI</h4>
+      <p style="font-size:0.98rem; color:#003366;">Scrivi cosa vuoi e guarda Tito AI disegnare per te!</p>
+    </div>
+    <div style="flex:1 1 200px; min-width:180px; background:white; border-radius:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.07); padding:1.2rem; text-align:center;">
+      <span style="font-size:1.7rem;">📖</span>
+      <h4 style="margin:0.5rem 0 0.2rem 0; color:#0055cc;">Fiabe magiche</h4>
+      <p style="font-size:0.98rem; color:#003366;">Inventa storie e ascolta le fiabe create dall’AI!</p>
+    </div>
+  </div>
+  <div style="margin:2.5rem 0 1.5rem 0; text-align:center;">
+    <span style="font-size:1.5rem;">👀</span>
+    <h3 style="color:#0055cc; margin:0.5rem 0 1rem 0;">Guarda cosa puoi fare!</h3>
+    <div style="display:flex; gap:1.5rem; justify-content:center; flex-wrap:wrap;">
+      <div style="background:#e6f0ff; border-radius:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.07); width:260px; height:180px; overflow:hidden;">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Screenshot Giochi" style="width:100%; height:100%; object-fit:cover; border-radius:1rem;" />
+      </div>
+      <div style="background:#e6f0ff; border-radius:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.07); width:260px; height:180px; overflow:hidden;">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Screenshot Disegno" style="width:100%; height:100%; object-fit:cover; border-radius:1rem;" />
+      </div>
+    </div>
+    <div style="margin-top:2rem; font-size:1.1rem; color:#003366;">Per iniziare, clicca su <b>Accedi / Registrati</b> in alto a destra!</div>
+  </div>
+</section>
+
+<!-- MODALE LOGIN/REGISTRAZIONE -->
+<div id="login-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.18); z-index:100; align-items:center; justify-content:center;">
+  <div style="background:white; border-radius:1rem; box-shadow:0 2px 16px rgba(0,0,0,0.13); padding:2rem 1.5rem; min-width:270px; max-width:340px; margin:auto; position:relative;">
+    <button id="close-login-modal" style="position:absolute; top:0.7rem; right:1rem; background:none; border:none; font-size:1.5rem; color:#0055cc; cursor:pointer;">&times;</button>
+    <h2 style="font-size:1.2rem; text-align:center; margin-bottom:0.5rem;">Accedi o Registrati</h2>
+    <input type="email" id="email" placeholder="Email" style="width:100%; margin-bottom:0.5rem;" />
+    <input type="password" id="password" placeholder="Password" style="width:100%; margin-bottom:0.5rem;" />
+    <button id="login-btn" style="width:100%; margin-bottom:0.5rem;" onclick="login()">Login</button>
+    <button id="signup-btn" style="width:100%;" onclick="signup()">Registrati</button>
+    <p id="login-message" style="color: red; text-align:center; margin-top:0.5rem;"></p>
+  </div>
+</div>
+
+<!-- BOTTONE ACCOUNT E MENU A TENDA -->
+<div id="account-menu" style="display:none; position:fixed; top:2rem; right:2rem; z-index:20;">
+  <button id="account-btn" style="background:white; border:none; border-radius:50%; width:50px; height:50px; box-shadow:0 2px 8px rgba(0,0,0,0.08); cursor:pointer; font-size:1.5rem;">👤</button>
+  <div id="account-dropdown" style="display:none; position:absolute; top:60px; right:0; background:white; border-radius:1rem; box-shadow:0 4px 12px rgba(0,0,0,0.15); min-width:200px; padding:1rem;">
+    <div style="text-align:center; margin-bottom:1rem; padding-bottom:0.5rem; border-bottom:1px solid #e6f0ff;">
+      <img id="dropdown-profile-pic" src="https://ui-avatars.com/api/?name=User" alt="Foto profilo" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid #cce0ff; background:#e6f0ff;">
+      <p id="dropdown-profile-name" style="margin:0.3rem 0 0 0; font-weight:600; color:#0055cc;">Utente</p>
+    </div>
+    <button id="dropdown-settings-btn" style="width:100%; text-align:left; background:none; border:none; padding:0.5rem; cursor:pointer; color:#003366; font-size:1rem;">⚙️ Impostazioni</button>
+    <button id="dropdown-logout-btn" style="width:100%; text-align:left; background:none; border:none; padding:0.5rem; cursor:pointer; color:#dc3545; font-size:1rem;">🚪 Logout</button>
+  </div>
+</div>
+
+<!-- SEZIONE IMPOSTAZIONI -->
+<section id="settings" style="display:none; max-width:400px; margin:3rem auto 0 auto; background:white; border-radius:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.08); padding:2rem;">
+  <h2 style="color:#0055cc; text-align:center; margin-bottom:1.5rem;">Impostazioni profilo</h2>
+  <form id="settings-form" autocomplete="off">
+    <div style="text-align:center; margin-bottom:1.2rem;">
+      <img id="settings-profile-pic" src="https://ui-avatars.com/api/?name=User" alt="Foto profilo" style="width:70px; height:70px; border-radius:50%; object-fit:cover; border:2px solid #cce0ff; background:#e6f0ff;">
+    </div>
+    <label for="display-name" style="font-weight:600; color:#003366;">Nome visualizzato</label>
+    <input type="text" id="display-name" style="width:100%; margin-bottom:1rem; padding:0.5rem; border-radius:0.5rem; border:1px solid #cce0ff;">
+    <button type="submit" style="width:100%; margin-top:0.5rem;">Salva modifiche</button>
+    <p id="settings-message" style="color:#28a745; text-align:center; margin-top:0.7rem;"></p>
+  </form>
+</section>
+
+<nav style="display:none;" id="nav-buttons">
+  <button onclick="showSection('games')">🧩 Giochi</button>
+  <button onclick="showSection('draw')">🎨 Disegni</button>
+  <button onclick="showSection('story')">📖 Fiabe</button>
+</nav>
+
+<section id="games">
+  <h2>🧩 Giochiamo!</h2>
+  <h3>Memory</h3>
+  <div class="game-grid" id="memoryGrid"></div>
+
+  <h3 style="margin-top: 2rem;">Gioco Matematico</h3>
+  <p id="mathQuestion"></p>
+  <input type="text" id="mathAnswer" placeholder="Risposta" />
+  <button id="math-verify-btn" onclick="checkMathAnswer()">Verifica</button>
+  <p id="mathFeedback" style="font-weight:bold;"></p>
+</section>
+
+<section id="draw">
+  <h2>🎨 Disegna con Tito</h2>
+  <input type="text" id="drawInput" placeholder="Es. Un unicorno che vola" style="width: 100%; max-width: 400px; padding: 0.75rem; font-size: 1rem;" />
+  <button id="draw-btn" onclick="generateImage()" style="margin-top: 1rem;">Disegna!</button>
+  <div class="output" id="drawOutput">(immagine AI qui)</div>
+</section>
+
+<section id="story">
+  <h2>📖 Crea una Fiaba</h2>
+  <input type="text" id="storyInput" placeholder="Es. Un drago che ama la pizza" style="width: 100%; max-width: 400px; padding: 0.75rem; font-size: 1rem;" />
+  <button id="story-btn" onclick="generateStory()" style="margin-top: 1rem;">Raccontami la storia!</button>
+  <div class="output" id="storyOutput"></div>
+</section>
+
+<script>
+  // Firebase Config e Inizializzazione
+  const firebaseConfig = {
+    apiKey: "AIzaSyDH0AB0Eo9HdxRDqNCAccw44MzAvt9bMVE",
+    authDomain: "tino-ai.firebaseapp.com",
+    projectId: "tino-ai",
+    storageBucket: "tino-ai.appspot.com",
+    messagingSenderId: "452787213843",
+    appId: "1:452787213843:web:d5d3175cd4544a135591e6",
+    measurementId: "G-W5Y5EKGJZZ"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+
+  // Login / Signup / Logout
+  function setLoginButtonsDisabled(disabled) {
+    document.getElementById('login-btn').disabled = disabled;
+    document.getElementById('signup-btn').disabled = disabled;
+  }
+  
+  function login() {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    document.getElementById('login-message').textContent = '';
+    setLoginButtonsDisabled(true);
+    auth.signInWithEmailAndPassword(email, password)
+      .catch(e => {
+        document.getElementById('login-message').textContent = e.message;
+      })
+      .finally(() => setLoginButtonsDisabled(false));
+  }
+  
+  function signup() {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    document.getElementById('login-message').textContent = '';
+    setLoginButtonsDisabled(true);
+    auth.createUserWithEmailAndPassword(email, password)
+      .catch(e => {
+        document.getElementById('login-message').textContent = e.message;
+      })
+      .finally(() => setLoginButtonsDisabled(false));
+  }
+  function logout() {
+    auth.signOut();
+  }
+  // Mostra/nasconde la modale login
+  const openLoginModalBtn = document.getElementById('open-login-modal');
+  const loginModal = document.getElementById('login-modal');
+  const closeLoginModalBtn = document.getElementById('close-login-modal');
+  if(openLoginModalBtn && loginModal && closeLoginModalBtn) {
+    openLoginModalBtn.onclick = () => { loginModal.style.display = 'flex'; };
+    closeLoginModalBtn.onclick = () => { loginModal.style.display = 'none'; };
+    window.onclick = (e) => { if(e.target === loginModal) loginModal.style.display = 'none'; };
+  }
+  // Nasconde il bottone login se loggato
+  function updateLoginButtonVisibility(user) {
+    if(user) {
+      document.getElementById('open-login-modal').style.display = 'none';
+    } else {
+      document.getElementById('open-login-modal').style.display = 'block';
+    }
+  }
+  // ACCOUNT MENU E PROFILO
+  const accountMenu = document.getElementById('account-menu');
+  const accountBtn = document.getElementById('account-btn');
+  const accountDropdown = document.getElementById('account-dropdown');
+  const dropdownProfilePic = document.getElementById('dropdown-profile-pic');
+  const dropdownProfileName = document.getElementById('dropdown-profile-name');
+  const dropdownSettingsBtn = document.getElementById('dropdown-settings-btn');
+  const dropdownLogoutBtn = document.getElementById('dropdown-logout-btn');
+  const navButtons = document.getElementById('nav-buttons');
+  const settingsSection = document.getElementById('settings');
+  const settingsForm = document.getElementById('settings-form');
+  const settingsProfilePic = document.getElementById('settings-profile-pic');
+  const displayNameInput = document.getElementById('display-name');
+  const settingsMessage = document.getElementById('settings-message');
+
+  // Mostra/nasconde menu account
+  function updateAccountMenu(user) {
+    if(user) {
+      accountMenu.style.display = 'block';
+      dropdownProfileName.textContent = user.displayName || 'Utente';
+      dropdownProfilePic.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||'Utente')}`;
+    } else {
+      accountMenu.style.display = 'none';
+    }
+  }
+
+  // Toggle dropdown
+  if(accountBtn) accountBtn.onclick = () => {
+    accountDropdown.style.display = accountDropdown.style.display === 'none' ? 'block' : 'none';
+  };
+
+  // Chiudi dropdown se si clicca fuori
+  document.addEventListener('click', (e) => {
+    if(!accountMenu.contains(e.target)) {
+      accountDropdown.style.display = 'none';
+    }
+  });
+
+  // Logout
+  if(dropdownLogoutBtn) dropdownLogoutBtn.onclick = logout;
+
+  // Vai alle impostazioni
+  if(dropdownSettingsBtn) dropdownSettingsBtn.onclick = () => { 
+    showSection('settings'); 
+    accountDropdown.style.display = 'none';
+  };
+
+  // Aggiorna nav per mostrare impostazioni
+  if(navButtons && !document.getElementById('settings-nav-btn')) {
+    const btn = document.createElement('button');
+    btn.id = 'settings-nav-btn';
+    btn.textContent = '⚙️ Impostazioni';
+    btn.onclick = () => showSection('settings');
+    navButtons.appendChild(btn);
+  }
+
+  // Mostra dati profilo in impostazioni
+  function showSettings(user) {
+    settingsProfilePic.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||'Utente')}`;
+    displayNameInput.value = user.displayName || '';
+    settingsMessage.textContent = '';
+  }
+
+  // Salva modifiche profilo
+  if(settingsForm) settingsForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const user = auth.currentUser;
+    if(!user) return;
+    
+    const newName = displayNameInput.value.trim();
+    
+    try {
+      await user.updateProfile({ 
+        displayName: newName, 
+        photoURL: user.photoURL 
+      });
+      updateAccountMenu(user);
+      showSettings(user);
+      settingsMessage.textContent = 'Profilo aggiornato con successo!';
+      settingsMessage.style.color = '#28a745';
+    } catch(error) {
+      settingsMessage.textContent = 'Errore nel salvataggio: ' + error.message;
+      settingsMessage.style.color = '#dc3545';
+    }
+  };
+
+  // Aggiorna la visibilità delle sezioni
+  auth.onAuthStateChanged(user => {
+    updateLoginButtonVisibility(user);
+    updateAccountMenu(user);
+    if(user) {
+      document.getElementById('homepage').style.display = 'none';
+      navButtons.style.display = 'flex';
+      accountMenu.style.display = 'block';
+      settingsSection.style.display = 'none';
+      loginModal.style.display = 'none';
+      showSection('games');
+    } else {
+      document.getElementById('homepage').style.display = 'block';
+      navButtons.style.display = 'none';
+      accountMenu.style.display = 'none';
+      settingsSection.style.display = 'none';
+      document.querySelectorAll('section').forEach(sec => sec.classList.remove('active'));
+    }
+  });
+
+  // Mostra dati profilo quando si entra in impostazioni
+  function showSection(id) {
+    document.querySelectorAll('section').forEach(sec => sec.classList.remove('active'));
+    if(id==='settings') {
+      settingsSection.style.display = 'block';
+      showSettings(auth.currentUser);
+    } else {
+      settingsSection.style.display = 'none';
+      document.getElementById(id).classList.add('active');
+    }
+  }
+
+  // MEMORY GAME
+  const symbols = ['🐶','🐱','🐭','🦊','🐼','🐼','🐶','🐱','🐭','🦊'];
+  let memoryValues = [];
+  let memoryCards = [];
+  let firstCard = null;
+  let lockBoard = false;
+  let matchedCount = 0;
+
+  function initMemoryGame() {
+    const grid = document.getElementById('memoryGrid');
+    grid.innerHTML = '';
+    memoryValues = [...symbols].sort(() => 0.5 - Math.random());
+    memoryCards = [];
+    firstCard = null;
+    lockBoard = false;
+    matchedCount = 0;
+
+    memoryValues.forEach((val, index) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.value = val;
+      card.dataset.index = index;
+      card.textContent = '?';
+      card.onclick = () => flipCard(card);
+      grid.appendChild(card);
+      memoryCards.push(card);
+    });
+  }
+
+  function flipCard(card) {
+    if (lockBoard || card.classList.contains('matched') || card === firstCard) return;
+    card.textContent = card.dataset.value;
+
+    if (!firstCard) {
+      firstCard = card;
+    } else {
+      lockBoard = true;
+      if (card.dataset.value === firstCard.dataset.value) {
+        card.classList.add('matched');
+        firstCard.classList.add('matched');
+        matchedCount += 2;
+        firstCard = null;
+        lockBoard = false;
+
+        if (matchedCount === memoryCards.length) {
+          setTimeout(() => {
+            alert("Bravo! Hai completato il Memory!");
+            initMemoryGame();
+          }, 500);
+        }
+      } else {
+        setTimeout(() => {
+          card.textContent = '?';
+          firstCard.textContent = '?';
+          firstCard = null;
+          lockBoard = false;
+        }, 1000);
+      }
+    }
+  }
+
+  // MATH GAME
+  let currentAnswer = 0;
+  function newMathQuestion() {
+    const num1 = Math.floor(Math.random() * 10);
+    const num2 = Math.floor(Math.random() * 10);
+    currentAnswer = num1 + num2;
+    document.getElementById('mathQuestion').textContent = `${num1} + ${num2} = ?`;
+    document.getElementById('mathAnswer').value = '';
+    document.getElementById('mathFeedback').textContent = '';
+  }
+  function checkMathAnswer() {
+    const answer = parseInt(document.getElementById('mathAnswer').value);
+    const feedback = document.getElementById('mathFeedback');
+    const verifyBtn = document.getElementById('math-verify-btn');
+    
+    verifyBtn.disabled = true;
+    
+    if (answer === currentAnswer) {
+      feedback.textContent = 'Bravo! 😄';
+      setTimeout(() => {
+        feedback.textContent = '';
+        newMathQuestion();
+        verifyBtn.disabled = false;
+      }, 1000);
+    } else {
+      feedback.textContent = 'Ops! Riprova.';
+      verifyBtn.disabled = false;
+    }
+  }
+
+  // OPENAI API KEY - METTI QUI LA TUA API KEY
+  const OPENAI_API_KEY = 'YOUR_OPENAI_API_KEY_HERE';
+
+  // Generate Story con OpenAI
+  async function generateStory() {
+    const prompt = document.getElementById('storyInput').value.trim();
+    const output = document.getElementById('storyOutput');
+    const storyBtn = document.getElementById('story-btn');
+    
+    if(!prompt) {
+      output.textContent = "Scrivi una richiesta per la fiaba.";
+      return;
+    }
+    
+    storyBtn.disabled = true;
+    output.textContent = "Sto creando la tua fiaba...";
+    
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: "Sei un narratore di fiabe per bambini." },
+            { role: "user", content: `Raccontami una fiaba su: ${prompt}` }
+          ],
+          max_tokens: 300,
+          temperature: 0.8
+        })
+      });
+      const data = await response.json();
+      output.textContent = data.choices[0].message.content.trim();
+    } catch(err) {
+      output.textContent = "Errore nella generazione della fiaba.";
+      console.error(err);
+    } finally {
+      storyBtn.disabled = false;
+    }
+  }
+
+  // Generate Image con OpenAI
+  async function generateImage() {
+    const prompt = document.getElementById('drawInput').value.trim();
+    const output = document.getElementById('drawOutput');
+    const drawBtn = document.getElementById('draw-btn');
+    
+    if(!prompt) {
+      output.textContent = "Scrivi cosa vuoi disegnare.";
+      return;
+    }
+    
+    drawBtn.disabled = true;
+    output.textContent = "Sto creando l'immagine...";
+    
+    try {
+      const response = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "dall-e-3",
+          prompt: prompt,
+          n: 1,
+          size: "512x512"
+        })
+      });
+      const data = await response.json();
+      if(data.data && data.data.length > 0) {
+        output.innerHTML = `<img src="${data.data[0].url}" alt="Disegno AI" style="max-width:100%; border-radius:1rem;"/>`;
+      } else {
+        output.textContent = "Nessuna immagine generata.";
+      }
+    } catch(err) {
+      output.textContent = "Errore nella generazione dell'immagine.";
+      console.error(err);
+    } finally {
+      drawBtn.disabled = false;
+    }
+  }
+
+  // Inizializza giochi quando si mostra la sezione Giochi
+  document.getElementById('nav-buttons').addEventListener('click', e => {
+    if(e.target.tagName === 'BUTTON') {
+      if(e.target.textContent.includes('Giochi')) {
+        initMemoryGame();
+        newMathQuestion();
+      }
+    }
+  });
+</script>
+
+</body>
+</html>
